@@ -20,7 +20,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: mi-go-devops
-        image: mi-go-devops:latest  # Imagen Docker que creamos
+        image: ghcr.io/fabianbele2605/mi-go-devops:latest
         imagePullPolicy: Never       # Usar solo imagen local
         ports:
         - containerPort: 8080       # Puerto interno del contenedor
