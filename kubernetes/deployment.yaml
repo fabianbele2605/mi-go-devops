@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mi-go-devops
+  labels:
+    app: mi-go-devops
+spec:
+  replicas: 2 # Alta disponibilidad - múltiples instancias
+  selector:
+    matchLabels:
+      app: mi-go-devops
+  template:
+    metadata:
+      labels:
+        app: mi-go-devops
+    spec:
+      # Configuración de seguridad - usuario no-root
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: mi-go-devops
+        image: mi-go-devops:latest  # Imagen Docker que creamos
+        imagePullPolicy: Never       # Usar solo imagen local
+        ports:
+        - containerPort: 8080       # Puerto interno del contenedor
+        env:
+        - name: PORT
+          value: "8080"
+        - name: APP_ENV             # Variable desde ConfigMap
+          valueFrom:
+            configMapKeyRef:
+              name: mi-go-devops-config
+              key: APP_ENV
+        # Límites de recursos para el contenedor
+        resources:
+          requests:                 # Recursos mínimos garantizados
+            memory: "64Mi"
+            cpu: "50m"
+          limits:                   # Recursos máximos permitidos
+            memory: "128Mi"
+            cpu: "100m"
+        # Probe para verificar si el contenedor está vivo
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30   # Espera antes del primer check
+          periodSeconds: 10         # Frecuencia de verificación
+        # Probe para verificar si está listo para recibir tráfico
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5

@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mi-go-devops-ingress
+  annotations:
+    # Redireccionar automatica a HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  # Usar ingressClassName en lugar de annotation (nueva forma)
+  ingressClassName: nginx
+  rules:
+  - host: mi-go-devops.local     # Dominio local para pruebas
+    http:
+      paths:
+      - path: /                  # Ruta raiz
+        pathType: Prefix
+        backend:
+          service:
+            name: mi-go-devops-service    # Nombre del servicio
+            port:
+              number: 80                  # Puerto del servicio

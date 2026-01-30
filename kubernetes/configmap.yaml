@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mi-go-devops-config
+data:
+  # Variables de entorno no sensibles
+  APP_ENV: "production"     # Entorno de la aplicación
+  LOG_LEVEL: "info"         # Nivel de logging
+  APP_NAME: "mi-go-devops"  # Nombre de la aplicación

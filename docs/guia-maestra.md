@@ -1,33 +1,8 @@
-# 🚀 Mi Go DevOps - Proyecto Completo de DevOps
+# 🚀 Guía Completa de DevOps para Principiantes
 
-> **Aplicación Go containerizada con Docker y orquestada en Kubernetes, incluyendo CI/CD completo**
+> **Tu tutor personal para dominar DevOps paso a paso**
 
-[![Go Version](https://img.shields.io/badge/Go-1.21-blue.svg)](https://golang.org/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-blue.svg)](https://kubernetes.io/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
-## 🎯 Audiencia
-- Desarrolladores que quieren aprender DevOps
-- Estudiantes de ingeniería de software  
-- Profesionales migrando a DevOps
-- Instructores buscando material práctico
-
-## ⏱️ Tiempo Estimado
-- **Instalación:** 30 minutos
-- **Desarrollo:** 2 horas
-- **Despliegue:** 1 hora
-- **Total:** 3.5 horas
-
-## 🏆 Al Completar Este Proyecto Habrás Demostrado:
-- ✅ Containerización con Docker multi-stage
-- ✅ Orquestación con Kubernetes
-- ✅ Configuración de Ingress para acceso externo
-- ✅ Gestión de configuraciones y secretos
-- ✅ Implementación de health checks
-- ✅ Mejores prácticas de seguridad
-
---- 
+¡Bienvenido a tu viaje en DevOps! Esta guía te llevará desde cero hasta crear un pipeline completo de CI/CD con Go, Docker y Kubernetes.
 
 ## 📋 Tabla de Contenidos
 
@@ -87,8 +62,6 @@ Al finalizar esta guía tendrás un **repositorio Go profesional** que:
 # Verifica que todo esté instalado
 go version && docker version && kubectl version --client
 ```
-
-**📖 Guía completa de instalación:** [`docs/instalacion.md`](docs/instalacion.md)
 
 ---
 
@@ -164,10 +137,10 @@ Docker empaqueta tu aplicación con todas sus dependencias en un "contenedor" qu
 
 ```bash
 # Construir la imagen
-make build
+docker build -t mi-app .
 
 # Ejecutar el contenedor
-make run-docker
+docker run -p 8080:8080 mi-app
 
 # Probar el endpoint
 curl http://localhost:8080/health
@@ -210,26 +183,8 @@ Kubernetes orquesta contenedores, manejando escalado, recuperación ante fallos 
 ### Opción A: kind (recomendado)
 
 ```bash
-# Crear cluster con configuración para Ingress
-kind create cluster --name devops-learning --config - <<EOF
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  kubeadmConfigPatches:
-  - |
-    kind: InitConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        node-labels: "ingress-ready=true"
-  extraPortMappings:
-  - containerPort: 80
-    hostPort: 80
-    protocol: TCP
-  - containerPort: 443
-    hostPort: 443
-    protocol: TCP
-EOF
+# Crear cluster
+kind create cluster --name devops-learning
 
 # Verificar
 kubectl get nodes
@@ -249,44 +204,79 @@ minikube addons enable ingress
 
 ---
 
-## 🚀 Despliegue Completo
+## 🔄 Pipeline de Integración Continua (CI)
 
-### Paso 1: Preparar el cluster
+### ¿Qué es CI?
+Integración Continua ejecuta automáticamente tests y validaciones cada vez que haces cambios al código.
 
+### Archivo: `.github/workflows/ci.yml`
+
+#### Disparadores:
+- Pull requests a `develop` y `main`
+- Push a `develop`
+
+#### Pasos del pipeline:
+
+1. **Checkout** del código
+2. **Setup Go** con cache
+3. **Tests** con coverage
+4. **Linting** con golangci-lint
+5. **Seguridad** con gosec
+6. **Build Docker** (validación)
+7. **Escaneo** con trivy (opcional)
+
+#### Regla de oro:
+**Si cualquier paso falla → CI falla → PR no se puede mergear**
+
+---
+
+## 🚀 Pipeline de Despliegue Continuo (CD)
+
+### ¿Qué es CD?
+Despliegue Continuo automatiza la publicación y despliegue de tu aplicación cuando el código está listo.
+
+### Archivo: `.github/workflows/cd.yml`
+
+#### Disparadores:
+- Push a `main`
+- Tags `v*` para releases
+
+#### Etapa 1: Build & Push
+- **Login** a GitHub Container Registry
+- **Build** con buildx
+- **Tags:** `sha-<commit>`, `latest`, `vX.Y.Z`
+
+#### Etapa 2: Deploy
+
+**Enfoque simple:**
 ```bash
-# Instalar controlador de Ingress NGINX
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-
-# Esperar a que esté listo
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=90s
-```
-
-### Paso 2: Desplegar la aplicación
-
-```bash
-# Cargar imagen Docker al cluster
-kind load docker-image mi-go-devops:latest --name devops-learning
-
-# Desplegar todos los manifiestos
 kubectl apply -f kubernetes/
-
-# Verificar que todo funciona
-kubectl get all,ingress
+kubectl set image deployment/mi-app container=nueva-imagen
 ```
 
-### Paso 3: Configurar acceso externo
+**Enfoque GitOps (recomendado):**
+- Actions solo publica imagen
+- ArgoCD/Flux despliega automáticamente
+- Más seguro y auditable
 
-```bash
-# Agregar dominio local
-echo "127.0.0.1 mi-go-devops.local" | sudo tee -a /etc/hosts
+---
 
-# Probar la aplicación
-curl http://mi-go-devops.local/
-curl http://mi-go-devops.local/health
-```
+## 🔐 Gestión de secretos
+
+### En GitHub (Settings → Secrets and variables → Actions):
+
+#### Para registry:
+- `GITHUB_TOKEN` (automático con permisos)
+- O `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN`
+
+#### Para Kubernetes:
+- `KUBECONFIG` (contenido del archivo)
+- `KUBE_NAMESPACE`
+
+#### Environments (opcional):
+- `dev` (automático)
+- `staging` (con aprobación)
+- `prod` (con aprobación manual)
 
 ---
 
@@ -294,11 +284,13 @@ curl http://mi-go-devops.local/health
 
 ### Checklist de funcionamiento:
 
-1. ✅ **Pods corriendo:** `kubectl get pods`
-2. ✅ **Service activo:** `kubectl get services`
-3. ✅ **Ingress configurado:** `kubectl get ingress`
-4. ✅ **Logs limpios:** `kubectl logs deployment/mi-go-devops`
-5. ✅ **Endpoint responde:** `curl http://mi-go-devops.local/health`
+1. ✅ **CI pasa** al abrir PR
+2. ✅ **Merge a main** exitoso
+3. ✅ **CD construye** y publica imagen
+4. ✅ **Deploy en K8s** exitoso
+5. ✅ **Pods corriendo:** `kubectl get pods`
+6. ✅ **Logs limpios:** `kubectl logs deployment/mi-app`
+7. ✅ **Endpoint responde:** port-forward o Ingress
 
 ### Comandos de verificación:
 
@@ -307,51 +299,50 @@ curl http://mi-go-devops.local/health
 kubectl get deploy,po,svc,ing
 
 # Logs de la aplicación
-kubectl logs -f deployment/mi-go-devops
+kubectl logs -f deployment/mi-app
 
-# Debugging si hay problemas
-kubectl describe pod <pod-name>
+# Probar endpoint
+kubectl port-forward svc/mi-app 8080:80
+curl http://localhost:8080/health
 ```
 
 ---
 
-## 📚 Documentación Adicional
+## ⭐ Mejoras avanzadas
 
-- 📖 **[Guía Maestra](docs/guia-maestra.md)** - Guía completa paso a paso (versión original)
-- 📖 **[Instalación de Herramientas](docs/instalacion.md)** - Guía completa de instalación
-- 🔧 **[Comandos Útiles](docs/comandos-utiles.md)** - Comandos esenciales de Go, Docker, Kubernetes
-- 🚨 **[Troubleshooting](docs/troubleshooting.md)** - Solución de problemas comunes
-- 🎓 **[Guía para Estudiantes](docs/para-estudiantes.md)** - Paso a paso con ejercicios
-- 📅 **[Plan de Estudio](docs/plan-de-estudio.md)** - Curso completo de 8 semanas
+### Para un proyecto "profesional":
 
----
-
-## 🤝 Contribuir
-
-¿Encontraste un error o tienes una mejora? ¡Las contribuciones son bienvenidas!
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+- 🔍 **Escaneo de imagen** con Trivy en CD
+- 📋 **SBOM** (Software Bill of Materials) con Syft
+- ✍️ **Firma de imagen** con Cosign
+- 🎛️ **Kustomize** para múltiples entornos
+- 🔄 **ArgoCD** para GitOps
+- 📊 **Métricas** y observabilidad
+- 🛡️ **Rate limiting** en Ingress
 
 ---
 
-## 📄 Licencia
+## 📚 Orden de implementación
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+### Para no enredarte, sigue este orden:
+
+1. **Estructura** + README + go.mod
+2. **Docker** build/run local
+3. **Kubernetes** local con manifests
+4. **CI** (tests/lint/security)
+5. **CD** (push imagen)
+6. **CD** (deploy) o GitOps
+7. **Mejoras** avanzadas
 
 ---
 
-## 🙏 Agradecimientos
+## 🎓 ¿Listo para empezar?
 
-- [Kubernetes Community](https://kubernetes.io/community/)
-- [Docker Community](https://www.docker.com/community/)
-- [Go Community](https://golang.org/help/)
+**¡Perfecto!** Ahora tienes una hoja de ruta clara. Recuerda:
 
----
+- 🐌 **Ve paso a paso** - no trates de hacer todo a la vez
+- 🧪 **Experimenta** - rompe cosas y aprende de los errores
+- 📚 **Documenta** - anota lo que aprendes
+- 🤝 **Pregunta** - la comunidad DevOps es muy colaborativa
 
 **¡Comencemos tu viaje DevOps!** 🚀
-
-*"El objetivo no es ser perfecto desde el inicio, sino mejorar continuamente"*
