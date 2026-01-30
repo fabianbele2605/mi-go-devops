@@ -6,6 +6,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - name: Checkout código
       uses: actions/checkout@v4
@@ -24,7 +26,14 @@ jobs:
         push: true
         tags: ghcr.io/${{ github.repository }}:latest
 
-    - name: Deploy a Kubernetes
+    - name: Actualizar manifiestos de Kubernetes
       run: |
-        echo "Deployment automático completo"
-        # Aquí iría la lógica de deploy real
+        # Actualizar imagen en deployment.yaml
+        sed -i 's|image: mi-go-devops:.*|image: ghcr.io/${{ github.repository }}:latest|' kubernetes/deployment.yaml
+
+        # Commit y push del cambio
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add kubernetes/deployment.yaml
+        git commit -m "Update deployment image to latest" || exit 0
+        git push
